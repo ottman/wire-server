@@ -95,7 +95,7 @@ apiScim = hoistScim (toServant (Scim.siteServer configuration))
     wrapScimErrors :: Spar a -> Spar a
     wrapScimErrors = over (_Spar . mapped) $ \io ->
         try @_ @SomeException io <&> \case
-            -- We caught an exception that's not a Spar exception. It should be
+            -- We caught an exception that's not a Spar exception. It is
             -- wrapped into SCIM.serverError and rethrown.
             Left someException ->
                 Left . SAML.CustomServant . Scim.scimToServantErr $
