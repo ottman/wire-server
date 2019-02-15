@@ -25,9 +25,11 @@ module Spar.Scim.Types where
 
 import Imports
 import Brig.Types.User       as Brig
-import Control.Lens hiding ((.=), Strict)
+import Control.Lens hiding ((.=), Strict, (#))
 import Data.Aeson as Aeson
+import Data.Misc (PlainTextPassword)
 import Data.Id
+import Data.Json.Util ((#))
 import Servant
 import Spar.API.Util
 import Spar.Types
@@ -64,18 +66,24 @@ makeLenses ''ValidScimUser
 
 -- | Type used for request parameters to 'APIScimTokenCreate'.
 data CreateScimToken = CreateScimToken
-  { createScimTokenDescr :: Text
+  { -- | Token description (as memory aid for whoever is creating the token)
+    createScimTokenDescr :: !Text
+    -- | User password, which we ask for because creating a token is a "powerful" operation
+  , createScimTokenPassword :: !(Maybe PlainTextPassword)
   } deriving (Eq, Show)
 
 instance FromJSON CreateScimToken where
   parseJSON = withObject "CreateScimToken" $ \o -> do
     createScimTokenDescr <- o .: "description"
+    createScimTokenPassword <- o .:? "password"
     pure CreateScimToken{..}
 
+-- Used for integration tests
 instance ToJSON CreateScimToken where
   toJSON CreateScimToken{..} = object
-    [ "description" .= createScimTokenDescr
-    ]
+    $ "description" .= createScimTokenDescr
+    # "password" .= createScimTokenPassword
+    # []
 
 -- | Type used for the response of 'APIScimTokenCreate'.
 data CreateScimTokenResponse = CreateScimTokenResponse
@@ -83,6 +91,7 @@ data CreateScimTokenResponse = CreateScimTokenResponse
   , createScimTokenResponseInfo  :: ScimTokenInfo
   } deriving (Eq, Show)
 
+-- Used for integration tests
 instance FromJSON CreateScimTokenResponse where
   parseJSON = withObject "CreateScimTokenResponse" $ \o -> do
     createScimTokenResponseToken <- o .: "token"
