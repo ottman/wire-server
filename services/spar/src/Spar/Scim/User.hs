@@ -77,7 +77,7 @@ instance Scim.UserDB Spar where
             let user' = Scim.value (Scim.thing user)
             in case Scim.filterUser filter_ user' of
                  Right res -> pure res
-                 Left err  -> Scim.throwScim $
+                 Left err  -> throwError $
                    Scim.badRequest Scim.InvalidFilter (Just err)
     -- FUTUREWORK: once bigger teams arrive, we should have pagination here.
     Scim.fromList <$> filterM check scimusers
@@ -109,11 +109,11 @@ instance Scim.UserDB Spar where
 
   delete :: ScimTokenInfo -> Text -> Scim.ScimHandler Spar Bool
   delete _ _ =
-      Scim.throwScim $ Scim.serverError "User delete is not implemented yet"  -- TODO
+      throwError $ Scim.serverError "User delete is not implemented yet"  -- TODO
 
   getMeta :: ScimTokenInfo -> Scim.ScimHandler Spar Scim.Meta
   getMeta _ =
-      Scim.throwScim $ Scim.serverError "User getMeta is not implemented yet"  -- TODO
+      throwError $ Scim.serverError "User getMeta is not implemented yet"  -- TODO
 
 ----------------------------------------------------------------------------
 -- User creation and validation
@@ -126,10 +126,10 @@ validateScimUser
   -> m ValidScimUser
 validateScimUser ScimTokenInfo{stiIdP} user = do
     idp <- case stiIdP of
-        Nothing -> Scim.throwScim $
+        Nothing -> throwError $
           Scim.serverError "No IdP configured for the provisioning token"
         Just idp -> lift (wrapMonadClient (Data.getIdPConfig idp)) >>= \case
-            Nothing -> Scim.throwScim $
+            Nothing -> throwError $
               Scim.serverError "The IdP corresponding to the provisioning token \
                                \was not found"
             Just idpConfig -> pure idpConfig
@@ -249,7 +249,7 @@ updateValidScimUser tokinfo uidText newScimUser = do
     -- construct old and new user values with metadata.
     uid :: UserId <- parseUid uidText
     oldScimStoredUser :: Scim.StoredUser
-      <- let err = Scim.throwScim $ Scim.notFound "user" uidText
+      <- let err = throwError $ Scim.notFound "user" uidText
          in maybe err pure =<< Scim.get tokinfo uidText
 
     if Scim.value (Scim.thing oldScimStoredUser) == (newScimUser ^. vsuUser)
@@ -262,7 +262,7 @@ updateValidScimUser tokinfo uidText newScimUser = do
         let uref = newScimUser ^. vsuSAMLUserRef
         lift . wrapMonadClient $ Data.insertUser uref uid  -- on spar
         bindok <- lift $ Intra.Brig.bindUser uid uref  -- on brig
-        unless bindok . Scim.throwScim $
+        unless bindok . throwError $
           Scim.serverError "Failed to update SAML UserRef (no such UserId? duplicate Handle?)"
 
         maybe (pure ()) (lift . Intra.Brig.setName uid) $ newScimUser ^. vsuName
@@ -332,7 +332,7 @@ parseUid
   :: forall m m'. (m ~ Scim.ScimHandler m', Monad m')
   => Text -> m UserId
 parseUid uidText = maybe err pure $ readMaybe (Text.unpack uidText)
-  where err = Scim.throwScim $ Scim.notFound "user" uidText
+  where err = throwError $ Scim.notFound "user" uidText
 
 -- | Calculate resource version (currently only for 'Scim.User's).
 --
