@@ -303,6 +303,12 @@ instance Arbitrary UserProfile where
         <*> arbitrary
         <*> arbitrary
 
+instance Arbitrary UserRichField where
+    arbitrary = UserRichField <$> arbitrary <*> arbitrary
+
+instance Arbitrary RichInfo where
+    arbitrary = RichInfo <$> arbitrary
+
 instance Arbitrary ServiceRef where
     arbitrary = ServiceRef <$> arbitrary <*> arbitrary
 
